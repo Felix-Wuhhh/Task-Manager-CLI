@@ -90,7 +90,7 @@ public:
         cout << "------------------\n";
     }
     void saveToFile() {
-        ofstream outFile("tasks.txt"); // Opens file for writing
+        ofstream outFile("tasks.txt"); 
         
         if (!outFile) {
             cout << ">> Error: Could not save data!\n";
@@ -98,44 +98,43 @@ public:
         }
 
         for (const auto &t : tasks) {
-            // Write: ID, Description, Status
+            //ID, Description, Status
             outFile << t.getId() << "," << t.getDescription() << "," << t.getStatus() << "\n";
         }
         
-        outFile.close(); // Always close the file!
+        outFile.close(); 
         cout << ">> Data saved to tasks.txt\n";
     }
 
     void loadFromFile() {
         ifstream inFile("tasks.txt");
         if (!inFile) {
-            return; // File doesn't exist yet (first run), that's fine.
+            return; 
         }
 
-        tasks.clear(); // Clear current list to avoid duplicates
-        addedTaskIds.clear(); // Clear undo history
+        tasks.clear();
+        addedTaskIds.clear(); 
 
         int id;
-        int statusInt; // We read 0 or 1 as an int first
-        string desc, dummy; // 'dummy' catches the commas
+        int statusInt; 
+        string desc, dummy; 
 
-        // While we can read an ID...
         while (inFile >> id) {
-            // 1. Read the comma after ID (throw it away)
+            //Read the comma 
             getline(inFile, dummy, ','); 
             
-            // 2. Read the description (stop at the next comma)
+            //Read the description
             getline(inFile, desc, ',');
 
-            // 3. Read the status (0 or 1)
+            //Read the status 
             inFile >> statusInt;
 
-            // 4. Create the task and push it
+
             bool isDone = (statusInt == 1);
             Task loadedTask(id, desc, isDone);
             tasks.push_back(loadedTask);
             
-            // Update the counter so new tasks don't reuse old IDs
+            // Update the counter
             if (id >= nextId) {
                 nextId = id + 1;
             }

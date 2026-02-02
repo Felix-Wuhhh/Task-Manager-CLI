@@ -6,7 +6,7 @@
 using namespace std;
 
 class Task{
-    private:
+    protected:
         int id;
         string description;
         bool isCompleted;
@@ -14,6 +14,12 @@ class Task{
     public:
         //normal constructor
         Task(int id, string desc) : id(id), description(desc), isCompleted(false) {}
+        virtual ~Task() {} 
+        
+        virtual void printTask() const {
+            cout << (isCompleted ? "[X] " : "[ ] ") 
+                << "ID " << id << ": " << description << endl;
+        }
         //loading constructor
         Task(int id, string desc, bool status) : id(id), description(desc), isCompleted(status) {}
         int getId() const { return id; }
@@ -22,32 +28,59 @@ class Task{
 
         void markComplete() { 
             isCompleted = true; 
-         }
+        }
 };
 
+class TimedTask : public Task {
+private:
+    string deadline; 
+
+public:
+    // Constructor passes ID and Desc up to the Base class
+    TimedTask(int id, string desc, string time) 
+        : Task(id, desc), deadline(time) {}
+
+    // OVERRIDE the print function
+    void printTask() const override {
+        // We can access 'isCompleted' etc. because they are 'protected'
+        cout << (isCompleted ? "[X] " : "[ ] ") 
+             << "ID " << id << ": " << description 
+             << " [DUE: " << deadline << "]" << endl; // <--- The Extra Part
+    }
+};
 
 class TaskManager {
 private:
     // This vector lives on the stack, but it stores data on the HEAP.
-    vector<Task> tasks; 
+    vector<Task*> tasks; 
     int nextId = 1;
     deque<int> addedTaskIds;
 
 public:
+    ~TaskManager() {
+        for (Task* t : tasks) {
+            delete t; // Free the heap memory
+        }
+    }
     // Add a new task to the list
     void addTask(string desc) {
-        Task newTask(nextId, desc);
+        Task* newTask = new Task(nextId, desc);
         tasks.push_back(newTask); 
         addedTaskIds.push_back(nextId);
         cout << ">> Task added successfully! (ID: " << nextId << ")\n";
         nextId++;
     }
-
+    void addTimedTask(string desc, string deadline) {
+        Task* newTask = new TimedTask(nextId, desc, deadline); 
+        tasks.push_back(newTask); 
+        addedTaskIds.push_back(nextId++);
+        cout << ">> Timed Task added.\n";
+    }
     // Mark a task as done
     void completeTask(int id) {
         for (auto &t : tasks) {
-            if (t.getId() == id) {
-                t.markComplete();
+            if (t->getId() == id) {
+                t->markComplete();
                 cout << ">> Task " << id << " marked as done.\n";
                 return;
             }
@@ -67,7 +100,8 @@ public:
         
         // Remove task from vector
         for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-            if (it->getId() == lastId) {
+            if ((*it)->getId() == lastId) {
+                delete *it; // Free the heap memory
                 tasks.erase(it);
                 cout << ">> Undone: Removed task " << lastId << "\n";
                 return;
@@ -84,8 +118,8 @@ public:
 
         cout << "\n--- TO-DO LIST ---\n";
         for (const auto &t : tasks) {
-            cout << (t.getStatus() ? "[X] " : "[ ] ");
-            cout << "ID " << t.getId() << ": " << t.getDescription() << endl;
+            cout << (t->getStatus() ? "[X] " : "[ ] ");
+            cout << "ID " << t->getId() << ": " << t->getDescription() << endl;
         }
         cout << "------------------\n";
     }
@@ -99,7 +133,7 @@ public:
 
         for (const auto &t : tasks) {
             //ID, Description, Status
-            outFile << t.getId() << "," << t.getDescription() << "," << t.getStatus() << "\n";
+            outFile << t->getId() << "," << t->getDescription() << "," << t->getStatus() << "\n";
         }
         
         outFile.close(); 
@@ -131,7 +165,7 @@ public:
 
 
             bool isDone = (statusInt == 1);
-            Task loadedTask(id, desc, isDone);
+            Task* loadedTask = new Task(id, desc, isDone);
             tasks.push_back(loadedTask);
             
             // Update the counter
@@ -162,12 +196,25 @@ int main() {
         }
 
         switch (choice) {
-            case 1:
+            case 1: {
+                cout << "Type (1) Normal or (2) Timed? ";
+                int type;
+                cin >> type;
+                cin.ignore(); // Clear buffer
+
                 cout << "Enter task description: ";
-                cin.ignore(); 
                 getline(cin, desc); 
-                manager.addTask(desc);
+                
+                if (type == 2) {
+                    cout << "Enter Deadline (e.g. 'Tonight'): ";
+                    string dl;
+                    getline(cin, dl);
+                    manager.addTimedTask(desc, dl);
+                } else {
+                    manager.addTask(desc);
+                }
                 break;
+            }
             case 2:
                 cout << "Enter Task ID to complete: ";
                 cin >> id;

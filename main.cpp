@@ -2,9 +2,24 @@
 #include <vector>
 #include <string>
 #include <fstream>
-
+#include <cstdlib>
+#include <algorithm>
+#include <deque>
 using namespace std;
 
+
+
+string color(string text, string colorCode) {
+    // 31=Red, 32=Green, 33=Yellow, 34=Blue, 36=Cyan, 0=Reset
+    return "\033[" + colorCode + "m" + text + "\033[0m";
+}
+void clearScreen() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+}
 class Task{
     protected:
         int id;
@@ -108,6 +123,23 @@ public:
             }
         }
     }
+    void sortTasks() {
+        if (tasks.empty()) return;
+
+        cout << "\nSort by:\n1. ID (Default)\n2. Status (Todo First)\nChoice: ";
+        int choice;
+        cin >> choice;
+
+        if (choice == 1) {
+            sort(tasks.begin(), tasks.end(), [](Task* a, Task* b) {
+                return a->getId() < b->getId(); 
+            });
+        } else if (choice == 2) {
+            sort(tasks.begin(), tasks.end(), [](Task* a, Task* b) {
+                return a->getStatus() < b->getStatus(); 
+            });
+        }
+    }
 
     // Show all tasks
     void listTasks() {
@@ -186,7 +218,20 @@ int main() {
     int id;
 
     while (true) {
-        cout << "\n1. Add Task\n2. Complete Task\n3. List Tasks\n4. Undo\n0. Exit\nChoice: ";
+       clearScreen(); // Clears terminal every loop
+        
+        // --- UI HEADER ---
+        cout << "\n========================================\n";
+        cout << "       " << color("TASK MASTER", "36") << "\n";
+        cout << "========================================\n";
+        manager.listTasks(); // Show tasks continuously
+        cout << "========================================\n";
+        cout << "  1. " << color("+", "32") << " Add Task\n";
+        cout << "  2. " << color("X", "32") << " Complete Task\n";
+        cout << "  3. " << color("<", "31") << " Undo Last Add\n";
+        cout << "  4. " << color("^", "35") << " Sort List\n";
+        cout << "  0. Exit\n";
+        cout << "Choice: ";
         cin >> choice;
 
         if (choice == 0){
@@ -221,10 +266,10 @@ int main() {
                 manager.completeTask(id);
                 break;
             case 3:
-                manager.listTasks();
+                manager.undo();
                 break;
             case 4:
-                manager.undo();
+                manager.sortTasks();
                 break;
             default:
                 cout << "Invalid choice.\n";
